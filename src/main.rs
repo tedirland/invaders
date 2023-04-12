@@ -1,6 +1,6 @@
 
 
-use std::{io, error::Error, time::Duration, sync::mpsc, thread};
+use std::{io, error::Error, time::{Duration, Instant}, sync::mpsc, thread};
 
 use crossterm::{terminal::{self, EnterAlternateScreen, LeaveAlternateScreen}, ExecutableCommand, cursor::{Hide, Show}, event::{self, Event, KeyCode}};
 use invaders::{frame::{self, new_frame, Drawable}, render, player::Player};
@@ -41,8 +41,11 @@ let render_handle = thread::spawn(move || {
 
 // Game Loop
 let mut player = Player::new();
+let mut instant = Instant::now();
 'gameloop: loop {
     // Per-frame init
+    let delta = instant.elapsed();
+    instant = Instant::now();
     let mut current_frame = new_frame();
     // Input 
     while event::poll(Duration::default())?  {
@@ -50,6 +53,11 @@ let mut player = Player::new();
             match key_event.code {
                 KeyCode::Left => player.move_left(),
                 KeyCode::Right => player.move_right(),
+                KeyCode::Char(' ') | KeyCode::Enter => {
+                    if player.shoot() {
+                        audio.play("pew")
+                    }
+                },
                 KeyCode::Esc | KeyCode::Char('q') => {
                     audio.play("lose");
                     break 'gameloop;
@@ -60,6 +68,8 @@ let mut player = Player::new();
         }
         
     }
+    // Updates
+    player.update(delta);
     // Draw and Render
     player.draw(&mut current_frame);
     let _ = render_tx.send(current_frame);
