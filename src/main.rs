@@ -74,6 +74,9 @@ let mut invaders = Invaders::new();
     if invaders.update(delta){
         audio.play("move");
     }
+    if player.detect_hits(&mut invaders) {
+        audio.play("explode");
+    }
     // Draw and Render
     let drawables : Vec<&dyn Drawable> = vec![&player, &invaders];
     for drawable in drawables {
@@ -81,6 +84,16 @@ let mut invaders = Invaders::new();
     }
     let _ = render_tx.send(current_frame);
     thread::sleep(Duration::from_millis(1));
+
+    // win or lose
+    if invaders.all_killed() {
+        audio.play("win");
+        break 'gameloop;
+    }
+    if invaders.reached_bottom() {
+        audio.play("lose");
+        break 'gameloop;
+    }
 }
 
 
